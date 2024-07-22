@@ -77,11 +77,7 @@ To utilize OpenAI services, such as ChatGPT for processing the extracted text, y
 The script uses the OpenAI API key to send requests to OpenAI's ChatGPT for interpreting and processing text extracted from screenshots. This interaction allows the script to utilize advanced AI for text analysis, which can be beneficial for various applications like data extraction, summarization, or even generating responses based on the screenshot content.
 
 ## Running the Script
-Once all configurations are done, including the OpenAI API key setup, you can run the script:
-
-## Running the Script
-Once all configurations are done, you can run the script:
-Make sure that all environment variables are set correctly in your `.env` file before running the script to avoid any unauthorized or failed requests.
+Once all configurations are done, including the OpenAI API key setup, you can run the script but make sure that all environment variables are set correctly in your `.env` file before running the script to avoid any unauthorized or failed requests.
 
 ## Troubleshooting
 - **API Key Issues**: If you encounter any issues related to the OpenAI API, such as `401 Unauthorized` errors, check to ensure that your API key is correctly set in the `.env` file and that it hasn't expired or been revoked.
