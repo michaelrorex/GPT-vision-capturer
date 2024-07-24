@@ -14,8 +14,8 @@ from google.cloud import vision
 import io
 from google.api_core.exceptions import GoogleAPIError
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from .env file
+load_dotenv(".env")
 
 # Get your OpenAI API key from environment variable
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -24,7 +24,7 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 openai.api_key = openai_api_key
 
 # Set the path to your Google Cloud service account JSON file
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "File_Path_to_.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "path_to_your_service_account_json_file"
 
 # Initialize Google Vision client
 vision_client = vision.ImageAnnotatorClient()
@@ -32,8 +32,8 @@ vision_client = vision.ImageAnnotatorClient()
 # Email configuration for Gmail
 smtp_server = 'smtp.gmail.com'
 smtp_port = 587
-smtp_password = os.getenv("SMTP_PASSWORD")
 smtp_username = os.getenv("SMTP_USERNAME")
+smtp_password = os.getenv("SMTP_PASSWORD")
 from_email = os.getenv("FROM_EMAIL")
 to_email = os.getenv("TO_EMAIL")
 
@@ -58,17 +58,42 @@ def extract_text_from_image(image_path):
     text = pytesseract.image_to_string(image)
     return text
 
-def send_text_to_chatgpt(text):
-    prompt = (
-        "For each multiple-choice question, provide the correct answer followed by an explanation. "
-        "If the question is long-form, just provide the explanation.\n\n"
-        f"Text from screenshot:\n{text}"
-    )
+def classify_question(text):
+    if "multiple choice" in text.lower():
+        return "multiple_choice"
+    elif "drag and drop" in text.lower():
+        return "drag_and_drop"
+    elif "code" in text.lower() or "program" in text.lower():
+        return "code_interpretation"
+    elif "network" in text.lower() or "router" in text.lower() or "configuration" in text.lower():
+        return "networking"
+    elif "security" in text.lower() or "vulnerability" in text.lower() or "penetration" in text.lower():
+        return "security"
+    else:
+        return "general"
+
+def generate_prompt(text, question_type):
+    if question_type == "multiple_choice":
+        prompt = f"Provide the correct answer for the following multiple-choice question. Use only the given information.\n\n{text}"
+    elif question_type == "drag_and_drop":
+        prompt = f"Provide the correct arrangement for the following drag-and-drop question. Use only the given information.\n\n{text}"
+    elif question_type == "code_interpretation":
+        prompt = f"Provide the correct interpretation and output for the following code interpretation question. Use only the given information.\n\n{text}"
+    elif question_type == "networking":
+        prompt = f"Provide the correct configuration or answer for the following networking question. Use only the given information.\n\n{text}"
+    elif question_type == "security":
+        prompt = f"Provide the correct answer for the following security-related question. Use only the given information.\n\n{text}"
+    else:
+        prompt = f"Answer the following question appropriately. Use only the given information.\n\n{text}"
+    return prompt
+
+def send_text_to_chatgpt(text, question_type):
+    prompt = generate_prompt(text, question_type)
     
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": "You are a knowledgeable assistant in IT, networking, security, and coding. Provide concise answers based solely on the provided information. Explain only if explicitly asked."},
             {"role": "user", "content": prompt}
         ],
         max_tokens=1500,
@@ -124,8 +149,9 @@ if __name__ == "__main__":
     print(f"Extracted text: {extracted_text}")
     
     if extracted_text.strip():
+        question_type = classify_question(extracted_text)
         try:
-            chatgpt_response = send_text_to_chatgpt(extracted_text)
+            chatgpt_response = send_text_to_chatgpt(extracted_text, question_type)
             print(f"ChatGPT Response: {chatgpt_response}")
             
             email_subject = "ChatGPT Processed Screenshot"
